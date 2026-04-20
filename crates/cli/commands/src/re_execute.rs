@@ -15,7 +15,7 @@ use reth_evm::{execute::Executor, ConfigureEvm};
 use reth_primitives_traits::{format_gas_throughput, BlockBody, GotExpected};
 use reth_provider::{
     BlockNumReader, BlockReader, ChainSpecProvider, DatabaseProviderFactory, ReceiptProvider,
-    StaticFileProviderFactory, TransactionVariant,
+    StaticFileProviderFactory,
 };
 use reth_revm::database::StateProviderDatabase;
 use reth_stages::stages::calculate_gas_used_from_headers;
@@ -156,14 +156,13 @@ impl<C: ChainSpecParser<ChainSpec: EthChainSpec + Hardforks + EthereumHardforks>
                     let mut executor = evm_config.batch_executor(db_at(chunk_start - 1));
                     let mut executor_created = Instant::now();
 
-                    'blocks: for block in chunk_start..chunk_end {
+                    let blocks = provider_factory
+                        .recovered_block_range(chunk_start..=chunk_end - 1)?;
+
+                    'blocks: for block in blocks {
                         if cancellation.is_cancelled() {
                             break;
                         }
-
-                        let block = provider_factory
-                            .recovered_block(block.into(), TransactionVariant::NoHash)?
-                            .unwrap();
 
                         let result = match executor.execute_one(&block) {
                             Ok(result) => result,
