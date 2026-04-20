@@ -179,8 +179,14 @@ impl<C: ChainSpecParser<ChainSpec: EthChainSpec + Hardforks + EthereumHardforks>
                             }
                         };
 
+                        // Pass pre-computed receipt root and logs bloom from the
+                        // block header to skip O(n log n) Merkle trie recomputation.
+                        let receipt_root_bloom = Some((
+                            block.header().receipts_root(),
+                            block.header().logs_bloom(),
+                        ));
                         if let Err(err) = consensus
-                            .validate_block_post_execution(&block, &result, None)
+                            .validate_block_post_execution(&block, &result, receipt_root_bloom)
                             .wrap_err_with(|| {
                                 format!(
                                     "Failed to validate block {} {}",
